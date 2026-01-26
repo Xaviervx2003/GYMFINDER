@@ -109,6 +109,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
         decoration: BoxDecoration(
+          // ignore: deprecated_member_use
           color: isSelected ? color.withOpacity(0.2) : const Color(0xFF1E1E1E),
           borderRadius: BorderRadius.circular(15),
           border: Border.all(color: isSelected ? color : Colors.transparent),

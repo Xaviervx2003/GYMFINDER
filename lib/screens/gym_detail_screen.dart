@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/gym.dart';
-import 'checkout_screen.dart'; // Import necessário
+import 'checkout_screen.dart';
+import '../widgets/activity_chart.dart'; 
 
 class GymDetailScreen extends StatelessWidget {
   final Gym gym;
@@ -13,13 +14,12 @@ class GymDetailScreen extends StatelessWidget {
       backgroundColor: const Color(0xFF121212),
       body: CustomScrollView(
         slivers: [
-          // 1. Cabeçalho com Foto (Efeito Parallax simples)
+          // 1. Cabeçalho com Foto
           SliverAppBar(
             expandedHeight: 250.0,
             floating: false,
             pinned: true,
             backgroundColor: const Color(0xFF121212),
-            // Botão de voltar (apenas volta para a lista)
             leading: IconButton(
               icon: const Icon(Icons.arrow_back, color: Colors.white),
               onPressed: () => Navigator.of(context).pop(),
@@ -80,21 +80,11 @@ class GymDetailScreen extends StatelessWidget {
                             color: Colors.white,
                             fontSize: 18,
                             fontWeight: FontWeight.bold)),
-                    const SizedBox(height: 15),
-                    SizedBox(
-                      height: 100,
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        children: [
-                          _buildBar("06h", 40, Colors.blue),
-                          _buildBar("09h", 60, Colors.blue),
-                          _buildBar("12h", 30, Colors.blue),
-                          _buildBar("18h", 90, Colors.redAccent), // Pico
-                          _buildBar("21h", 50, Colors.blue),
-                        ],
-                      ),
-                    ),
+                    
+                    const SizedBox(height: 20),
+                    
+                    // Widget do Gráfico
+                    const ActivityChart(),
 
                     const SizedBox(height: 30),
 
@@ -117,7 +107,7 @@ class GymDetailScreen extends StatelessWidget {
 
                     const SizedBox(height: 40),
 
-                    // Botão de Ação (CTA) - AGORA LEVA PARA O CHECKOUT
+                    // Botão de Ação
                     SizedBox(
                       width: double.infinity,
                       height: 55,
@@ -128,7 +118,6 @@ class GymDetailScreen extends StatelessWidget {
                               borderRadius: BorderRadius.circular(15)),
                         ),
                         onPressed: () {
-                          // Navegação correta para a tela de Pagamento
                           Navigator.push(
                             context,
                             MaterialPageRoute(
@@ -151,26 +140,6 @@ class GymDetailScreen extends StatelessWidget {
     );
   }
 
-  // Helper para criar as barras do gráfico
-  Widget _buildBar(String time, double percentage, Color color) {
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.end,
-      children: [
-        Container(
-          width: 20,
-          height: percentage,
-          decoration: BoxDecoration(
-            color: color,
-            borderRadius: BorderRadius.circular(4),
-          ),
-        ),
-        const SizedBox(height: 5),
-        Text(time, style: const TextStyle(color: Colors.grey, fontSize: 12)),
-      ],
-    );
-  }
-
-  // Helper para os ícones de diferenciais
   Widget _buildAmenity(IconData icon, String label, bool isActive) {
     return Column(
       children: [
