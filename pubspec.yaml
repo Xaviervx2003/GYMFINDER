@@ -37,9 +37,8 @@ dependencies:
   google_maps_flutter: ^2.14.0
   geolocator: ^14.0.2
   fl_chart: ^1.1.1
+  http: ^1.6.0
   # NOVAS BIBLIOTECAS AQUI:
-  flutter_map: ^6.0.0
-  latlong2: ^0.9.0    # Necessário para usar latitude/longitude no OpenMap
 
 dev_dependencies:
   flutter_test:

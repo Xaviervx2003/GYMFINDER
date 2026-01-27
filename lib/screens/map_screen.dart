@@ -1,9 +1,10 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:flutter_map/flutter_map.dart'; // O novo motor de mapa
-import 'package:latlong2/latlong.dart'; // Coordenadas para este mapa
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:geolocator/geolocator.dart';
-import '../data/mock_data.dart';
+import 'package:http/http.dart' as http;
 import 'gym_detail_screen.dart';
+import '../models/gym.dart'; // Precisamos para criar o objeto Gym na hora
 
 class MapScreen extends StatefulWidget {
   const MapScreen({super.key});
@@ -13,11 +14,15 @@ class MapScreen extends StatefulWidget {
 }
 
 class _MapScreenState extends State<MapScreen> {
-  // Posição padrão (Manaus)
-  final LatLng _defaultLocation = const LatLng(-3.10719, -60.0261);
+  static const LatLng _defaultLocation = LatLng(-3.10719, -60.0261);
+  
+  // ⚠️ SUA CHAVE AQUI PARA O CÓDIGO DART USAR
+  final String googleApiKey = "AIzaSyBBnswbr2JOFi70hMAmTU5-scnTF942CAE"; 
+
+  GoogleMapController? mapController;
   LatLng? _currentPosition;
   bool _isLoading = true;
-  final MapController _mapController = MapController();
+  Set<Marker> _markers = {};
 
   @override
   void initState() {
@@ -46,24 +51,96 @@ class _MapScreenState extends State<MapScreen> {
 
     Position position = await Geolocator.getCurrentPosition();
     
+    if (!mounted) return;
+
     setState(() {
       _currentPosition = LatLng(position.latitude, position.longitude);
-      _isLoading = false;
     });
 
-    // Move a câmera para a posição do usuário
-    _mapController.move(_currentPosition!, 15.0);
+    // Assim que pegamos a posição, buscamos as academias reais!
+    await _searchNearbyGyms(position.latitude, position.longitude);
+  }
+
+  Future<void> _searchNearbyGyms(double lat, double lng) async {
+    // URL da API "Places" do Google (Busca num raio de 2km = 2000 metros)
+    final url = 
+        'https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=$lat,$lng&radius=2000&type=gym&key=$googleApiKey';
+
+    try {
+      final response = await http.get(Uri.parse(url));
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        final List results = data['results'];
+
+        Set<Marker> realGymMarkers = {};
+
+        for (var place in results) {
+          final gymName = place['name'];
+          final gymLat = place['geometry']['location']['lat'];
+          final gymLng = place['geometry']['location']['lng'];
+          final rating = place['rating']?.toDouble() ?? 4.5;
+          final isOpen = place['opening_hours']?['open_now'] ?? true;
+
+          // Criamos um objeto Gym temporário para passar para a tela de detalhes
+          final tempGym = Gym(
+            id: place['place_id'],
+            name: gymName,
+            address: place['vicinity'] ?? "Endereço não informado",
+            imageUrl: "assets/gym_1.jpg", // Foto genérica por enquanto
+            dayPassPrice: 25.0, // Preço estimado (a API não dá preço)
+            rating: rating,
+            hasAirConditioning: true,
+            latitude: gymLat,
+            longitude: gymLng,
+          );
+
+          realGymMarkers.add(
+            Marker(
+              markerId: MarkerId(place['place_id']),
+              position: LatLng(gymLat, gymLng),
+              infoWindow: InfoWindow(
+                title: gymName,
+                snippet: isOpen ? "Aberto agora • ⭐ $rating" : "Fechado",
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => GymDetailScreen(gym: tempGym)),
+                  );
+                },
+              ),
+              icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueViolet),
+            ),
+          );
+        }
+
+        setState(() {
+          _markers = realGymMarkers;
+          _isLoading = false;
+        });
+        
+        // Move a câmera para focar
+        mapController?.animateCamera(
+          CameraUpdate.newLatLngZoom(LatLng(lat, lng), 14),
+        );
+
+      } else {
+        print("Erro na API do Google: ${response.body}");
+        setState(() => _isLoading = false);
+      }
+    } catch (e) {
+      print("Erro de conexão: $e");
+      setState(() => _isLoading = false);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    // Definir o centro do mapa (Usuário ou Padrão)
-    final center = _currentPosition ?? _defaultLocation;
-
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Mapa OpenSource"),
-        backgroundColor: const Color(0xFF121212),
+        title: const Text("Academias Reais (Google)"),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () => Navigator.pop(context),
@@ -71,91 +148,17 @@ class _MapScreenState extends State<MapScreen> {
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator(color: Colors.deepPurpleAccent))
-          : FlutterMap(
-              mapController: _mapController,
-              options: MapOptions(
-                initialCenter: center, // Posição inicial
-                initialZoom: 14.0,
+          : GoogleMap(
+              onMapCreated: (controller) {
+                mapController = controller;
+              },
+              initialCameraPosition: CameraPosition(
+                target: _currentPosition ?? _defaultLocation,
+                zoom: 14.0,
               ),
-              children: [
-                // 1. Camada do Desenho do Mapa (OpenStreetMap)
-                TileLayer(
-                  urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                  userAgentPackageName: 'com.example.gymfinder',
-                ),
-                
-                // 2. Camada dos Pinos (Marcadores)
-                MarkerLayer(
-                  markers: mockGyms.map((gym) {
-                    // Calculando posição fake próxima
-                    final gymPos = LatLng(
-                      center.latitude + (mockGyms.indexOf(gym) * 0.005),
-                      center.longitude + (mockGyms.indexOf(gym) * 0.005),
-                    );
-
-                    return Marker(
-                      point: gymPos,
-                      width: 80,
-                      height: 80,
-                      child: GestureDetector(
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => GymDetailScreen(gym: gym),
-                            ),
-                          );
-                        },
-                        child: Column(
-                          children: [
-                            const Icon(
-                              Icons.location_on,
-                              color: Colors.deepPurpleAccent,
-                              size: 40,
-                            ),
-                            Container(
-                              padding: const EdgeInsets.all(4),
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(5),
-                              ),
-                              child: Text(
-                                gym.name,
-                                style: const TextStyle(
-                                  fontSize: 10, 
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.black
-                                ),
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    );
-                  }).toList(),
-                ),
-                
-                // 3. Bolinha Azul da sua localização (Gambiarra visual simples)
-                if (_currentPosition != null)
-                  MarkerLayer(
-                    markers: [
-                      Marker(
-                        point: _currentPosition!,
-                        width: 20,
-                        height: 20,
-                        child: Container(
-                          decoration: BoxDecoration(
-                            color: Colors.blue,
-                            shape: BoxShape.circle,
-                            border: Border.all(color: Colors.white, width: 2),
-                            boxShadow: const [BoxShadow(blurRadius: 5, color: Colors.black26)],
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-              ],
+              markers: _markers,
+              myLocationEnabled: true,
+              myLocationButtonEnabled: true,
             ),
     );
   }
