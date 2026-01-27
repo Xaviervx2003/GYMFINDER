@@ -16,26 +16,26 @@ class GymFinderApp extends StatelessWidget {
     return MaterialApp(
       title: 'GymFinder',
       debugShowCheckedModeBanner: false,
-      // CONFIGURAÇÃO DO VISUAL MODERNO
       theme: ThemeData(
         useMaterial3: true,
         brightness: Brightness.dark,
         primaryColor: Colors.deepPurpleAccent,
-        scaffoldBackgroundColor: const Color(0xFF0F0F0F), // Preto profundo
-        cardTheme: CardThemeData( // Corrigido de CardTheme para CardThemeData
+        scaffoldBackgroundColor: const Color(0xFF0F0F0F),
+        cardTheme: CardThemeData(
           color: const Color(0xFF1E1E1E),
           elevation: 4,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         ),
       ),
+      // AQUI ESTÁ O SEGREDO: Definimos a rota inicial explicitamente
       initialRoute: '/',
+      routes: {
+        // A rota '/' é a principal. Ela DEVE chamar HomeScreen (que tem as abas)
+        '/': (context) => const HomeScreen(),
+        '/map': (context) => const MapScreen(),
+      },
+      // Configuração para passar argumentos para a tela de detalhes
       onGenerateRoute: (settings) {
-        if (settings.name == '/') {
-          return MaterialPageRoute(builder: (_) => const HomeScreen());
-        }
-        if (settings.name == '/map') {
-          return MaterialPageRoute(builder: (_) => const MapScreen());
-        }
         if (settings.name == '/details') {
           final gym = settings.arguments as Gym;
           return MaterialPageRoute(builder: (_) => GymDetailScreen(gym: gym));

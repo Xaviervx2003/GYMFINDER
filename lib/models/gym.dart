@@ -1,8 +1,8 @@
 class Gym {
   final String id;
   final String name;
-  final String address;      // <--- OBRIGATÓRIO PARA O MAPA FUNCIONAR
-  final String imageUrl;
+  final String address;      // Campo obrigatório
+  final String imageUrl;     // Link da internet
   final double dayPassPrice;
   final double rating;
   final String distance;
@@ -13,7 +13,7 @@ class Gym {
   Gym({
     required this.id,
     required this.name,
-    this.address = "Endereço não informado", // Valor padrão para evitar erro
+    this.address = "Endereço não informado", // Valor padrão evita erros
     this.imageUrl = "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?q=80&w=1470&auto=format&fit=crop",
     required this.dayPassPrice,
     required this.rating,

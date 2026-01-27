@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:geolocator/geolocator.dart';
@@ -15,9 +14,9 @@ class MapScreen extends StatefulWidget {
 }
 
 class _MapScreenState extends State<MapScreen> {
-  // Coordenada padrão (Manaus) caso o GPS falhe
   static const LatLng _defaultLocation = LatLng(-3.10719, -60.0261);
   
+  // MANTENHA SUA CHAVE AQUI
   final String googleApiKey = "AIzaSyBBnswbr2JOFi70hMAmTU5-scnTF942CAE"; 
 
   GoogleMapController? mapController;
@@ -35,14 +34,12 @@ class _MapScreenState extends State<MapScreen> {
     bool serviceEnabled;
     LocationPermission permission;
 
-    // Verifica se o GPS está ligado no celular
     serviceEnabled = await Geolocator.isLocationServiceEnabled();
     if (!serviceEnabled) {
       if (mounted) setState(() => _isLoading = false);
       return;
     }
 
-    // Verifica permissão do App
     permission = await Geolocator.checkPermission();
     if (permission == LocationPermission.denied) {
       permission = await Geolocator.requestPermission();
@@ -52,7 +49,6 @@ class _MapScreenState extends State<MapScreen> {
       }
     }
 
-    // Pega a posição atual
     Position position = await Geolocator.getCurrentPosition();
     
     if (!mounted) return;
@@ -61,7 +57,6 @@ class _MapScreenState extends State<MapScreen> {
       _currentPosition = LatLng(position.latitude, position.longitude);
     });
 
-    // Busca as academias
     await _searchNearbyGyms(position.latitude, position.longitude);
   }
 
@@ -85,31 +80,29 @@ class _MapScreenState extends State<MapScreen> {
           final rating = place['rating']?.toDouble() ?? 4.5;
           final isOpen = place['opening_hours']?['open_now'] ?? true;
           
-          // AQUI ESTAVA O ERRO ANTES: Pegamos o endereço certo agora
-          final address = place['vicinity'] ?? "Endereço não informado";
+          // CORREÇÃO CRÍTICA: Pegando o endereço certo do JSON do Google
+          final String realAddress = place['vicinity'] ?? "Endereço indisponível";
 
-          // Cria o objeto academia para passar para a próxima tela
           final tempGym = Gym(
             id: place['place_id'],
             name: gymName,
-            address: address, // Envia a variável address que criamos acima
+            address: realAddress, // Agora passa a variável correta (String), não null
             imageUrl: "https://images.unsplash.com/photo-1571902943202-507ec2618e8f?q=80&w=1375&auto=format&fit=crop",
             dayPassPrice: 25.0,
             rating: rating,
             hasAirConditioning: true,
             latitude: gymLat,
             longitude: gymLng,
-            distance: "Perto", // Valor simples para o mapa
+            distance: "Perto de você",
           );
 
-          // Cria o pino no mapa
           realGymMarkers.add(
             Marker(
               markerId: MarkerId(place['place_id']),
               position: LatLng(gymLat, gymLng),
               infoWindow: InfoWindow(
                 title: gymName,
-                snippet: isOpen ? "Aberto agora • ⭐ $rating" : "Fechado",
+                snippet: isOpen ? "Aberto • ⭐ $rating" : "Fechado",
                 onTap: () {
                   Navigator.push(
                     context,
@@ -134,11 +127,9 @@ class _MapScreenState extends State<MapScreen> {
         );
 
       } else {
-        if (kDebugMode) print("Erro Google: ${response.body}");
         if (mounted) setState(() => _isLoading = false);
       }
     } catch (e) {
-      if (kDebugMode) print("Erro Conexão: $e");
       if (mounted) setState(() => _isLoading = false);
     }
   }
@@ -146,12 +137,11 @@ class _MapScreenState extends State<MapScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      // AppBar sem botão de voltar (arrow_back removido)
       appBar: AppBar(
-        title: const Text("Academias Reais (Google)"),
+        title: const Text("Academias Reais"),
         backgroundColor: Colors.transparent,
         elevation: 0,
-        automaticallyImplyLeading: false, 
+        automaticallyImplyLeading: false, // REMOVE A SETA DE VOLTAR (IMPORTANTE)
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator(color: Colors.deepPurpleAccent))
