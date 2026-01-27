@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 import '../models/gym.dart';
-import 'checkout_screen.dart';
-import '../widgets/activity_chart.dart'; 
 
 class GymDetailScreen extends StatelessWidget {
   final Gym gym;
@@ -11,152 +9,126 @@ class GymDetailScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF121212),
       body: CustomScrollView(
         slivers: [
-          // 1. Cabeçalho com Foto
           SliverAppBar(
-            expandedHeight: 250.0,
-            floating: false,
+            expandedHeight: 250,
             pinned: true,
-            backgroundColor: const Color(0xFF121212),
-            leading: IconButton(
-              icon: const Icon(Icons.arrow_back, color: Colors.white),
-              onPressed: () => Navigator.of(context).pop(),
-            ),
             flexibleSpace: FlexibleSpaceBar(
-              title: Text(
-                gym.name,
-                style: const TextStyle(fontSize: 16, color: Colors.white),
-              ),
-              background: Container(
-                color: Colors.grey[800],
-                child: const Center(
-                  child: Icon(Icons.fitness_center, size: 80, color: Colors.white24),
-                ),
+              title: Text(gym.name, style: const TextStyle(color: Colors.white, fontSize: 16)),
+              background: Stack(
+                fit: StackFit.expand,
+                children: [
+                  // CORREÇÃO PRINCIPAL: Usar Image.network
+                  Image.network(
+                    gym.imageUrl,
+                    fit: BoxFit.cover,
+                    errorBuilder: (ctx, error, stack) => Container(color: Colors.grey[850]),
+                  ),
+                  // Gradiente para o texto ficar legível
+                  Container(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        // ignore: deprecated_member_use
+                        colors: [Colors.transparent, Colors.black.withOpacity(0.8)],
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
           ),
-
-          // 2. Conteúdo da Ficha
-          SliverList(
-            delegate: SliverChildListDelegate([
-              Padding(
-                padding: const EdgeInsets.all(20.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Preço e Avaliação
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          "R\$ ${gym.dayPassPrice.toStringAsFixed(2)} / dia",
-                          style: const TextStyle(
-                            color: Colors.greenAccent,
-                            fontSize: 22,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                          decoration: BoxDecoration(
-                            color: Colors.amber,
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          child: Text(
-                            "⭐ ${gym.rating}",
-                            style: const TextStyle(
-                                color: Colors.black, fontWeight: FontWeight.bold),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 30),
-
-                    // Gráfico de Lotação
-                    const Text("Horários de Pico",
-                        style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold)),
-                    
-                    const SizedBox(height: 20),
-                    
-                    // Widget do Gráfico
-                    const ActivityChart(),
-
-                    const SizedBox(height: 30),
-
-                    // Diferenciais
-                    const Text("Diferenciais",
-                        style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold)),
-                    const SizedBox(height: 15),
-                    Row(
-                      children: [
-                        _buildAmenity(Icons.ac_unit, "Ar Cond.", gym.hasAirConditioning),
-                        const SizedBox(width: 15),
-                        _buildAmenity(Icons.wifi, "Wi-Fi Grátis", true),
-                        const SizedBox(width: 15),
-                        _buildAmenity(Icons.shower, "Vestiário", true),
-                      ],
-                    ),
-
-                    const SizedBox(height: 40),
-
-                    // Botão de Ação
-                    SizedBox(
-                      width: double.infinity,
-                      height: 55,
-                      child: ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.deepPurpleAccent,
-                          shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(15)),
-                        ),
-                        onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => CheckoutScreen(gym: gym),
-                            ),
-                          );
-                        },
-                        child: const Text("Comprar Day Pass",
-                            style: TextStyle(color: Colors.white, fontSize: 18)),
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        "R\$ ${gym.dayPassPrice.toInt()}",
+                        style: const TextStyle(
+                            fontSize: 28, 
+                            fontWeight: FontWeight.bold, 
+                            color: Colors.deepPurpleAccent),
                       ),
+                      Row(
+                        children: [
+                          const Icon(Icons.star, color: Colors.amber),
+                          Text(" ${gym.rating}", style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                        ],
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Text("Diária Avulsa", style: TextStyle(color: Colors.grey[400])),
+                  const SizedBox(height: 24),
+                  
+                  const Text("Endereço", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      const Icon(Icons.location_on, color: Colors.deepPurpleAccent, size: 20),
+                      const SizedBox(width: 8),
+                      Expanded(child: Text(gym.address, style: const TextStyle(fontSize: 16))),
+                    ],
+                  ),
+                  
+                  const SizedBox(height: 24),
+                  const Text("Comodidades", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 16),
+                  _buildAmenity(Icons.ac_unit, "Ar Condicionado", gym.hasAirConditioning),
+                  _buildAmenity(Icons.wifi, "Wi-Fi Grátis", true),
+                  _buildAmenity(Icons.shower, "Vestiários", true),
+                  _buildAmenity(Icons.water_drop, "Bebedouro", true),
+
+                  const SizedBox(height: 40),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 50,
+                    child: ElevatedButton(
+                      onPressed: () {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text("Check-in realizado com sucesso! Bom treino! 💪")),
+                        );
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.deepPurpleAccent,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+                      ),
+                      child: const Text("Fazer Check-in Agora", style: TextStyle(fontSize: 18, color: Colors.white)),
                     ),
-                    const SizedBox(height: 50),
-                  ],
-                ),
+                  ),
+                  const SizedBox(height: 40),
+                ],
               ),
-            ]),
+            ),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildAmenity(IconData icon, String label, bool isActive) {
-    return Column(
-      children: [
-        Container(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: isActive ? Colors.grey[800] : Colors.grey[900],
-            borderRadius: BorderRadius.circular(12),
-            border: isActive ? Border.all(color: Colors.deepPurpleAccent) : null,
-          ),
-          child: Icon(icon, color: isActive ? Colors.white : Colors.grey),
-        ),
-        const SizedBox(height: 5),
-        Text(label,
+  Widget _buildAmenity(IconData icon, String label, bool isAvailable) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Row(
+        children: [
+          Icon(icon, color: isAvailable ? Colors.greenAccent : Colors.grey),
+          const SizedBox(width: 12),
+          Text(
+            label,
             style: TextStyle(
-                color: isActive ? Colors.white : Colors.grey, fontSize: 10)),
-      ],
+              color: isAvailable ? Colors.white : Colors.grey,
+              decoration: isAvailable ? null : TextDecoration.lineThrough,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

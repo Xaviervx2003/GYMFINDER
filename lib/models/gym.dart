@@ -1,23 +1,23 @@
 class Gym {
   final String id;
   final String name;
-  final String address;      // Novo (para o mapa)
+  final String address;      // <--- OBRIGATÓRIO PARA O MAPA FUNCIONAR
   final String imageUrl;
   final double dayPassPrice;
   final double rating;
-  final String distance;     // <--- RECUPERADO (para a lista não quebrar)
+  final String distance;
   final bool hasAirConditioning;
-  final double latitude;     // Novo (para o mapa)
-  final double longitude;    // Novo (para o mapa)
+  final double latitude;
+  final double longitude;
 
   Gym({
     required this.id,
     required this.name,
-    this.address = "Endereço não informado", // Valor padrão se não vier da API
-    this.imageUrl = "assets/gym_1.jpg",      // Valor padrão para não ficar vazio
+    this.address = "Endereço não informado", // Valor padrão para evitar erro
+    this.imageUrl = "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?q=80&w=1470&auto=format&fit=crop",
     required this.dayPassPrice,
     required this.rating,
-    this.distance = "Calculando...",         // Valor padrão se não tivermos a distância exata
+    this.distance = "Calculando...",
     required this.hasAirConditioning,
     this.latitude = 0.0,
     this.longitude = 0.0,

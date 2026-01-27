@@ -1,10 +1,11 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:http/http.dart' as http;
 import 'gym_detail_screen.dart';
-import '../models/gym.dart'; // Precisamos para criar o objeto Gym na hora
+import '../models/gym.dart'; 
 
 class MapScreen extends StatefulWidget {
   const MapScreen({super.key});
@@ -14,9 +15,9 @@ class MapScreen extends StatefulWidget {
 }
 
 class _MapScreenState extends State<MapScreen> {
+  // Coordenada padrão (Manaus) caso o GPS falhe
   static const LatLng _defaultLocation = LatLng(-3.10719, -60.0261);
   
-  // ⚠️ SUA CHAVE AQUI PARA O CÓDIGO DART USAR
   final String googleApiKey = "AIzaSyBBnswbr2JOFi70hMAmTU5-scnTF942CAE"; 
 
   GoogleMapController? mapController;
@@ -34,21 +35,24 @@ class _MapScreenState extends State<MapScreen> {
     bool serviceEnabled;
     LocationPermission permission;
 
+    // Verifica se o GPS está ligado no celular
     serviceEnabled = await Geolocator.isLocationServiceEnabled();
     if (!serviceEnabled) {
-      setState(() => _isLoading = false);
+      if (mounted) setState(() => _isLoading = false);
       return;
     }
 
+    // Verifica permissão do App
     permission = await Geolocator.checkPermission();
     if (permission == LocationPermission.denied) {
       permission = await Geolocator.requestPermission();
       if (permission == LocationPermission.denied) {
-        setState(() => _isLoading = false);
+        if (mounted) setState(() => _isLoading = false);
         return;
       }
     }
 
+    // Pega a posição atual
     Position position = await Geolocator.getCurrentPosition();
     
     if (!mounted) return;
@@ -57,12 +61,11 @@ class _MapScreenState extends State<MapScreen> {
       _currentPosition = LatLng(position.latitude, position.longitude);
     });
 
-    // Assim que pegamos a posição, buscamos as academias reais!
+    // Busca as academias
     await _searchNearbyGyms(position.latitude, position.longitude);
   }
 
   Future<void> _searchNearbyGyms(double lat, double lng) async {
-    // URL da API "Places" do Google (Busca num raio de 2km = 2000 metros)
     final url = 
         'https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=$lat,$lng&radius=2000&type=gym&key=$googleApiKey';
 
@@ -81,20 +84,25 @@ class _MapScreenState extends State<MapScreen> {
           final gymLng = place['geometry']['location']['lng'];
           final rating = place['rating']?.toDouble() ?? 4.5;
           final isOpen = place['opening_hours']?['open_now'] ?? true;
+          
+          // AQUI ESTAVA O ERRO ANTES: Pegamos o endereço certo agora
+          final address = place['vicinity'] ?? "Endereço não informado";
 
-          // Criamos um objeto Gym temporário para passar para a tela de detalhes
+          // Cria o objeto academia para passar para a próxima tela
           final tempGym = Gym(
             id: place['place_id'],
             name: gymName,
-            address: place['vicinity'] ?? "Endereço não informado",
-            imageUrl: "assets/gym_1.jpg", // Foto genérica por enquanto
-            dayPassPrice: 25.0, // Preço estimado (a API não dá preço)
+            address: address, // Envia a variável address que criamos acima
+            imageUrl: "https://images.unsplash.com/photo-1571902943202-507ec2618e8f?q=80&w=1375&auto=format&fit=crop",
+            dayPassPrice: 25.0,
             rating: rating,
             hasAirConditioning: true,
             latitude: gymLat,
             longitude: gymLng,
+            distance: "Perto", // Valor simples para o mapa
           );
 
+          // Cria o pino no mapa
           realGymMarkers.add(
             Marker(
               markerId: MarkerId(place['place_id']),
@@ -114,44 +122,41 @@ class _MapScreenState extends State<MapScreen> {
           );
         }
 
-        setState(() {
-          _markers = realGymMarkers;
-          _isLoading = false;
-        });
+        if (mounted) {
+          setState(() {
+            _markers = realGymMarkers;
+            _isLoading = false;
+          });
+        }
         
-        // Move a câmera para focar
         mapController?.animateCamera(
           CameraUpdate.newLatLngZoom(LatLng(lat, lng), 14),
         );
 
       } else {
-        print("Erro na API do Google: ${response.body}");
-        setState(() => _isLoading = false);
+        if (kDebugMode) print("Erro Google: ${response.body}");
+        if (mounted) setState(() => _isLoading = false);
       }
     } catch (e) {
-      print("Erro de conexão: $e");
-      setState(() => _isLoading = false);
+      if (kDebugMode) print("Erro Conexão: $e");
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      // AppBar sem botão de voltar (arrow_back removido)
       appBar: AppBar(
         title: const Text("Academias Reais (Google)"),
         backgroundColor: Colors.transparent,
         elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () => Navigator.pop(context),
-        ),
+        automaticallyImplyLeading: false, 
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator(color: Colors.deepPurpleAccent))
           : GoogleMap(
-              onMapCreated: (controller) {
-                mapController = controller;
-              },
+              onMapCreated: (controller) => mapController = controller,
               initialCameraPosition: CameraPosition(
                 target: _currentPosition ?? _defaultLocation,
                 zoom: 14.0,

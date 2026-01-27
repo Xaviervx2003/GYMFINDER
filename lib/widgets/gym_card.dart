@@ -13,6 +13,7 @@ class GymCard extends StatelessWidget {
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(20),
         gradient: LinearGradient(
+          // ignore: deprecated_member_use
           colors: [Colors.deepPurple.withOpacity(0.1), Colors.black12],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
