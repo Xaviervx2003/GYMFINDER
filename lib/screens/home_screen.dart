@@ -1,10 +1,10 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:http/http.dart' as http;
 import 'package:google_fonts/google_fonts.dart';
+import '../core/app_colors.dart'; // <--- Import
 import '../widgets/gym_card.dart';
 import '../models/gym.dart';
+import '../services/gym_service.dart';
 import 'map_screen.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -25,21 +25,22 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppColors.background, // <--- Fundo Global
       body: _pages[_selectedIndex],
       bottomNavigationBar: NavigationBar(
         selectedIndex: _selectedIndex,
         onDestinationSelected: _onItemTapped,
-        backgroundColor: const Color(0xFF1E1E1E),
-        indicatorColor: Colors.deepPurpleAccent,
+        backgroundColor: AppColors.surface, // <--- Barra de Navegação
+        indicatorColor: AppColors.primary,
         destinations: const [
           NavigationDestination(
-            icon: Icon(Icons.list_alt_outlined, color: Colors.white),
-            selectedIcon: Icon(Icons.list_alt, color: Colors.white),
+            icon: Icon(Icons.list_alt_outlined, color: AppColors.textWhite),
+            selectedIcon: Icon(Icons.list_alt, color: AppColors.textWhite),
             label: 'Lista',
           ),
           NavigationDestination(
-            icon: Icon(Icons.map_outlined, color: Colors.white),
-            selectedIcon: Icon(Icons.map, color: Colors.white),
+            icon: Icon(Icons.map_outlined, color: AppColors.textWhite),
+            selectedIcon: Icon(Icons.map, color: AppColors.textWhite),
             label: 'Mapa',
           ),
         ],
@@ -48,7 +49,6 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 }
 
-// === ABA LISTA ===
 class HomeTab extends StatefulWidget {
   const HomeTab({super.key});
 
@@ -57,24 +57,19 @@ class HomeTab extends StatefulWidget {
 }
 
 class _HomeTabState extends State<HomeTab> {
-  final String googleApiKey =
-      "AIzaSyBBnswbr2JOFi70hMAmTU5-scnTF942CAE"; // SUA CHAVE
-
+  final GymService _gymService = GymService();
   List<Gym> allGyms = [];
   List<Gym> filteredGyms = [];
   bool isLoading = true;
   String errorMessage = "";
-
   final TextEditingController _searchController = TextEditingController();
   bool _onlyOpen = false;
-
-  // === NOVO FILTRO DE RAIO (Padrão 2km) ===
   double _searchRadiusKm = 2.0;
 
   @override
   void initState() {
     super.initState();
-    _fetchRealGyms();
+    _loadGyms();
   }
 
   void _filterList() {
@@ -88,14 +83,7 @@ class _HomeTabState extends State<HomeTab> {
     });
   }
 
-  // Função para pegar fotos (igual antes)
-  String _getPhotoUrl(var photoReference) {
-    if (photoReference == null)
-      return "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?q=80&w=1470&auto=format&fit=crop";
-    return 'https://maps.googleapis.com/maps/api/place/photo?maxwidth=400&photo_reference=$photoReference&key=$googleApiKey';
-  }
-
-  Future<void> _fetchRealGyms() async {
+  Future<void> _loadGyms() async {
     setState(() {
       isLoading = true;
       errorMessage = "";
@@ -116,88 +104,26 @@ class _HomeTabState extends State<HomeTab> {
       }
 
       Position position = await Geolocator.getCurrentPosition();
-
-      // USA O RAIO SELECIONADO NA URL
       int radiusMeters = (_searchRadiusKm * 1000).toInt();
-      final url =
-          'https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=${position.latitude},${position.longitude}&radius=$radiusMeters&type=gym&key=$googleApiKey';
 
-      final response = await http.get(Uri.parse(url));
+      List<Gym> gyms = await _gymService.fetchNearbyGyms(
+        userPosition: position,
+        radiusMeters: radiusMeters,
+      );
 
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        final List results = data['results'];
-
-        List<Gym> loadedGyms = [];
-
-        for (var place in results) {
-          bool isOpenNow = place['opening_hours']?['open_now'] ?? false;
-          double gymLat = place['geometry']['location']['lat'];
-          double gymLng = place['geometry']['location']['lng'];
-
-          String? photoRef;
-          if (place['photos'] != null && place['photos'].length > 0) {
-            photoRef = place['photos'][0]['photo_reference'];
-          }
-
-          double distMeters = Geolocator.distanceBetween(
-            position.latitude,
-            position.longitude,
-            gymLat,
-            gymLng,
-          );
-          String formattedDistance = distMeters >= 1000
-              ? "${(distMeters / 1000).toStringAsFixed(1)} km"
-              : "${distMeters.toInt()} m";
-
-          loadedGyms.add(
-            Gym(
-              id: place['place_id'],
-              name: place['name'] ?? "Academia",
-              address: place['vicinity'] ?? "Endereço não informado",
-              imageUrl: _getPhotoUrl(photoRef),
-              dayPassPrice: 25.0,
-              rating: place['rating']?.toDouble() ?? 0.0,
-              hasAirConditioning: true,
-              isOpen: isOpenNow,
-              latitude: gymLat,
-              longitude: gymLng,
-              distance: formattedDistance,
-            ),
-          );
-        }
-
-        // Ordenar por distância real
-        loadedGyms.sort((a, b) {
-          double distA = a.distance.contains("km")
-              ? double.parse(a.distance.split(" ")[0]) * 1000
-              : double.parse(a.distance.split(" ")[0]);
-          double distB = b.distance.contains("km")
-              ? double.parse(b.distance.split(" ")[0]) * 1000
-              : double.parse(b.distance.split(" ")[0]);
-          return distA.compareTo(distB);
+      if (mounted) {
+        setState(() {
+          allGyms = gyms;
+          filteredGyms = gyms;
+          isLoading = false;
+          if (_onlyOpen) _filterList();
         });
-
-        if (mounted) {
-          setState(() {
-            allGyms = loadedGyms;
-            filteredGyms = loadedGyms;
-            isLoading = false;
-            if (_onlyOpen) _filterList();
-          });
-        }
-      } else {
-        if (mounted)
-          setState(() {
-            isLoading = false;
-            errorMessage = "Erro API: ${response.statusCode}";
-          });
       }
     } catch (e) {
       if (mounted)
         setState(() {
           isLoading = false;
-          errorMessage = "Erro Internet";
+          errorMessage = e.toString().replaceAll("Exception:", "");
         });
     }
   }
@@ -205,18 +131,19 @@ class _HomeTabState extends State<HomeTab> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppColors.background,
       floatingActionButton: FloatingActionButton(
-        onPressed: _fetchRealGyms,
-        backgroundColor: Colors.deepPurpleAccent,
-        child: const Icon(Icons.refresh, color: Colors.white),
+        onPressed: _loadGyms,
+        backgroundColor: AppColors.primary,
+        child: const Icon(Icons.refresh, color: AppColors.textWhite),
       ),
       body: CustomScrollView(
         slivers: [
           SliverAppBar(
-            expandedHeight: 180, // Aumentei para caber o slider
+            expandedHeight: 180,
             floating: true,
             pinned: true,
-            backgroundColor: const Color(0xFF0F0F0F),
+            backgroundColor: AppColors.background,
             flexibleSpace: FlexibleSpaceBar(
               titlePadding: EdgeInsets.zero,
               background: Padding(
@@ -227,15 +154,12 @@ class _HomeTabState extends State<HomeTab> {
                     Text(
                       "GymFinder",
                       style: GoogleFonts.montserrat(
-                        color: Colors.white,
+                        color: AppColors.textWhite,
                         fontSize: 26,
                         fontWeight: FontWeight.w800,
                       ),
                     ),
-
                     const SizedBox(height: 10),
-
-                    // === BARRA DE PESQUISA ===
                     Row(
                       children: [
                         Expanded(
@@ -245,19 +169,22 @@ class _HomeTabState extends State<HomeTab> {
                               controller: _searchController,
                               onChanged: (value) => _filterList(),
                               style: const TextStyle(
-                                color: Colors.white,
+                                color: AppColors.textWhite,
                                 fontSize: 14,
                               ),
                               decoration: InputDecoration(
                                 hintText: "Buscar...",
-                                hintStyle: TextStyle(color: Colors.grey[600]),
+                                hintStyle: const TextStyle(
+                                  color: AppColors.textGrey,
+                                ),
                                 prefixIcon: const Icon(
                                   Icons.search,
-                                  color: Colors.grey,
+                                  color: AppColors.textGrey,
                                   size: 20,
                                 ),
                                 filled: true,
-                                fillColor: const Color(0xFF1E1E1E),
+                                fillColor: AppColors
+                                    .surface, // <--- Input usando Surface
                                 contentPadding: EdgeInsets.zero,
                                 border: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(20),
@@ -280,12 +207,14 @@ class _HomeTabState extends State<HomeTab> {
                               _filterList();
                             });
                           },
-                          backgroundColor: const Color(0xFF1E1E1E),
-                          selectedColor: Colors.green.withOpacity(0.2),
+                          backgroundColor: AppColors.surface,
+                          selectedColor: AppColors.open.withOpacity(0.2),
                           labelStyle: TextStyle(
-                            color: _onlyOpen ? Colors.green : Colors.white,
+                            color: _onlyOpen
+                                ? AppColors.open
+                                : AppColors.textWhite,
                           ),
-                          checkmarkColor: Colors.green,
+                          checkmarkColor: AppColors.open,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(20),
                           ),
@@ -293,10 +222,7 @@ class _HomeTabState extends State<HomeTab> {
                         ),
                       ],
                     ),
-
                     const SizedBox(height: 10),
-
-                    // === NOVO FILTRO DE RAIO (SLIDER) ===
                     Row(
                       children: [
                         Text(
@@ -309,11 +235,9 @@ class _HomeTabState extends State<HomeTab> {
                         Expanded(
                           child: SliderTheme(
                             data: SliderTheme.of(context).copyWith(
-                              activeTrackColor: Colors.deepPurpleAccent,
-                              thumbColor: Colors.deepPurpleAccent,
-                              overlayColor: Colors.deepPurpleAccent.withOpacity(
-                                0.2,
-                              ),
+                              activeTrackColor: AppColors.primary,
+                              thumbColor: AppColors.primary,
+                              overlayColor: AppColors.primary.withOpacity(0.2),
                               trackHeight: 2,
                               thumbShape: const RoundSliderThumbShape(
                                 enabledThumbRadius: 6,
@@ -331,8 +255,7 @@ class _HomeTabState extends State<HomeTab> {
                                 });
                               },
                               onChangeEnd: (double value) {
-                                // Só recarrega quando soltar o dedo
-                                _fetchRealGyms();
+                                _loadGyms();
                               },
                             ),
                           ),
@@ -348,8 +271,15 @@ class _HomeTabState extends State<HomeTab> {
           if (isLoading)
             const SliverFillRemaining(
               child: Center(
-                child: CircularProgressIndicator(
-                  color: Colors.deepPurpleAccent,
+                child: CircularProgressIndicator(color: AppColors.primary),
+              ),
+            )
+          else if (errorMessage.isNotEmpty)
+            SliverFillRemaining(
+              child: Center(
+                child: Text(
+                  errorMessage,
+                  style: const TextStyle(color: AppColors.closed),
                 ),
               ),
             )
@@ -358,7 +288,7 @@ class _HomeTabState extends State<HomeTab> {
               child: Center(
                 child: Text(
                   "Nada encontrado neste raio 🕵️",
-                  style: TextStyle(color: Colors.white),
+                  style: TextStyle(color: AppColors.textWhite),
                 ),
               ),
             )

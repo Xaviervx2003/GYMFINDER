@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:cached_network_image/cached_network_image.dart';
+import '../core/app_colors.dart'; // <--- Import
 import '../models/gym.dart';
 
 class GymDetailScreen extends StatelessWidget {
@@ -8,7 +10,6 @@ class GymDetailScreen extends StatelessWidget {
 
   const GymDetailScreen({super.key, required this.gym});
 
-  // Abre o Google Maps Completo (onde tem telefone e chat)
   Future<void> _openGoogleMaps() async {
     final googleMapsUrl = Uri.parse(
       "https://www.google.com/maps/search/?api=1&query=${gym.latitude},${gym.longitude}&query_place_id=${gym.id}",
@@ -19,37 +20,45 @@ class GymDetailScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0F0F0F),
+      backgroundColor: AppColors.background,
       body: CustomScrollView(
         slivers: [
-          // TOPO COM FOTO GIGANTE
           SliverAppBar(
             expandedHeight: 300,
             pinned: true,
-            backgroundColor: const Color(0xFF0F0F0F),
+            backgroundColor: AppColors.background,
             flexibleSpace: FlexibleSpaceBar(
-              background: Image.network(
-                gym.imageUrl,
+              background: CachedNetworkImage(
+                imageUrl: gym.imageUrl,
                 fit: BoxFit.cover,
-                errorBuilder: (ctx, _, __) =>
-                    Container(color: Colors.grey[900]),
+                placeholder: (context, url) => const Center(
+                  child: CircularProgressIndicator(color: AppColors.primary),
+                ),
+                errorWidget: (context, url, error) => Container(
+                  color: AppColors.surface,
+                  child: const Icon(
+                    Icons.broken_image,
+                    color: Colors.white24,
+                    size: 50,
+                  ),
+                ),
               ),
             ),
             leading: IconButton(
-              icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white),
+              icon: const Icon(
+                Icons.arrow_back_ios_new,
+                color: AppColors.textWhite,
+              ),
               onPressed: () => Navigator.pop(context),
               style: IconButton.styleFrom(backgroundColor: Colors.black54),
             ),
           ),
-
-          // CONTEÚDO
           SliverToBoxAdapter(
             child: Padding(
               padding: const EdgeInsets.all(20),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Status e Nota
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -60,28 +69,36 @@ class GymDetailScreen extends StatelessWidget {
                         ),
                         decoration: BoxDecoration(
                           color: gym.isOpen
-                              ? Colors.green.withOpacity(0.2)
-                              : Colors.red.withOpacity(0.2),
+                              ? AppColors.open.withOpacity(0.2)
+                              : AppColors.closed.withOpacity(0.2),
                           borderRadius: BorderRadius.circular(8),
                           border: Border.all(
-                            color: gym.isOpen ? Colors.green : Colors.red,
+                            color: gym.isOpen
+                                ? AppColors.open
+                                : AppColors.closed,
                           ),
                         ),
                         child: Text(
                           gym.isOpen ? "ABERTO AGORA" : "FECHADO",
                           style: TextStyle(
-                            color: gym.isOpen ? Colors.green : Colors.red,
+                            color: gym.isOpen
+                                ? AppColors.open
+                                : AppColors.closed,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
                       ),
                       Row(
                         children: [
-                          const Icon(Icons.star, color: Colors.amber, size: 20),
+                          const Icon(
+                            Icons.star,
+                            color: AppColors.star,
+                            size: 20,
+                          ),
                           Text(
                             " ${gym.rating}",
                             style: const TextStyle(
-                              color: Colors.white,
+                              color: AppColors.textWhite,
                               fontSize: 18,
                               fontWeight: FontWeight.bold,
                             ),
@@ -90,28 +107,22 @@ class GymDetailScreen extends StatelessWidget {
                       ),
                     ],
                   ),
-
                   const SizedBox(height: 16),
-
-                  // Título
                   Text(
                     gym.name,
                     style: GoogleFonts.montserrat(
-                      color: Colors.white,
+                      color: AppColors.textWhite,
                       fontSize: 28,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
-
                   const SizedBox(height: 8),
-
-                  // Endereço
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const Icon(
                         Icons.location_on,
-                        color: Colors.grey,
+                        color: AppColors.textGrey,
                         size: 20,
                       ),
                       const SizedBox(width: 8),
@@ -119,7 +130,7 @@ class GymDetailScreen extends StatelessWidget {
                         child: Text(
                           gym.address,
                           style: const TextStyle(
-                            color: Colors.grey,
+                            color: AppColors.textGrey,
                             fontSize: 14,
                             height: 1.4,
                           ),
@@ -127,14 +138,11 @@ class GymDetailScreen extends StatelessWidget {
                       ),
                     ],
                   ),
-
                   const SizedBox(height: 30),
-
-                  // Horário (Texto Simples pois a API básica não dá detalhes)
                   const Text(
                     "Horário de Funcionamento",
                     style: TextStyle(
-                      color: Colors.white,
+                      color: AppColors.textWhite,
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
                     ),
@@ -144,7 +152,7 @@ class GymDetailScreen extends StatelessWidget {
                     width: double.infinity,
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: const Color(0xFF1E1E1E),
+                      color: AppColors.surface,
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Text(
@@ -154,38 +162,34 @@ class GymDetailScreen extends StatelessWidget {
                       style: const TextStyle(color: Colors.white70),
                     ),
                   ),
-
                   const SizedBox(height: 30),
-
-                  // BOTÃO DE AÇÃO (Resolver o contato)
                   SizedBox(
                     width: double.infinity,
                     height: 55,
                     child: ElevatedButton.icon(
                       onPressed: _openGoogleMaps,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.deepPurpleAccent,
+                        backgroundColor: AppColors.primary,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(16),
                         ),
                       ),
-                      icon: const Icon(Icons.map, color: Colors.white),
+                      icon: const Icon(Icons.map, color: AppColors.textWhite),
                       label: const Text(
                         "VER HORÁRIOS / TELEFONE",
                         style: TextStyle(
-                          color: Colors.white,
+                          color: AppColors.textWhite,
                           fontWeight: FontWeight.bold,
                           fontSize: 16,
                         ),
                       ),
                     ),
                   ),
-
                   const SizedBox(height: 10),
                   const Center(
                     child: Text(
                       "Toque acima para ligar ou ver site",
-                      style: TextStyle(color: Colors.grey, fontSize: 12),
+                      style: TextStyle(color: AppColors.textGrey, fontSize: 12),
                     ),
                   ),
                   const SizedBox(height: 50),

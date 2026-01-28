@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:url_launcher/url_launcher.dart';
+import 'package:cached_network_image/cached_network_image.dart';
+import '../core/app_colors.dart'; // <--- Importamos nossas cores
 import '../models/gym.dart';
 
 class GymCard extends StatelessWidget {
@@ -13,7 +14,7 @@ class GymCard extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       decoration: BoxDecoration(
-        color: const Color(0xFF252525), // Fundo cinza escuro
+        color: AppColors.card, // <--- Uso da cor centralizada
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
@@ -28,29 +29,39 @@ class GymCard extends StatelessWidget {
         child: InkWell(
           borderRadius: BorderRadius.circular(16),
           onTap: () {
-            // Leva para a tela de detalhes
             Navigator.pushNamed(context, '/details', arguments: gym);
           },
           child: Padding(
             padding: const EdgeInsets.all(12),
             child: Row(
               children: [
-                // === FOTO ===
+                // FOTO
                 Stack(
                   children: [
                     Hero(
                       tag: gym.id,
                       child: ClipRRect(
                         borderRadius: BorderRadius.circular(12),
-                        child: Image.network(
-                          gym.imageUrl,
+                        child: CachedNetworkImage(
+                          imageUrl: gym.imageUrl,
                           width: 90,
                           height: 90,
                           fit: BoxFit.cover,
-                          errorBuilder: (ctx, _, __) => Container(
+                          placeholder: (context, url) => Container(
                             width: 90,
                             height: 90,
-                            color: Colors.grey[800],
+                            color: AppColors.surface,
+                            child: const Center(
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: AppColors.primary,
+                              ),
+                            ),
+                          ),
+                          errorWidget: (context, url, error) => Container(
+                            width: 90,
+                            height: 90,
+                            color: AppColors.surface,
                             child: const Icon(
                               Icons.fitness_center,
                               color: Colors.white24,
@@ -59,7 +70,6 @@ class GymCard extends StatelessWidget {
                         ),
                       ),
                     ),
-                    // Etiqueta de Status (Aberto/Fechado)
                     Positioned(
                       bottom: 0,
                       left: 0,
@@ -68,8 +78,8 @@ class GymCard extends StatelessWidget {
                         padding: const EdgeInsets.symmetric(vertical: 2),
                         decoration: BoxDecoration(
                           color: gym.isOpen
-                              ? Colors.green.withOpacity(0.9)
-                              : Colors.red.withOpacity(0.9),
+                              ? AppColors.open.withOpacity(0.9)
+                              : AppColors.closed.withOpacity(0.9),
                           borderRadius: const BorderRadius.only(
                             bottomLeft: Radius.circular(12),
                             bottomRight: Radius.circular(12),
@@ -81,7 +91,7 @@ class GymCard extends StatelessWidget {
                           style: GoogleFonts.poppins(
                             fontSize: 9,
                             fontWeight: FontWeight.bold,
-                            color: Colors.white,
+                            color: AppColors.textWhite,
                           ),
                         ),
                       ),
@@ -91,7 +101,7 @@ class GymCard extends StatelessWidget {
 
                 const SizedBox(width: 14),
 
-                // === INFORMAÇÕES ===
+                // DADOS
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -103,62 +113,54 @@ class GymCard extends StatelessWidget {
                         style: GoogleFonts.poppins(
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
-                          color: Colors.white,
+                          color: AppColors.textWhite,
                         ),
                       ),
-
                       const SizedBox(height: 4),
-
                       Text(
                         gym.address,
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                         style: GoogleFonts.poppins(
-                          color: Colors.grey[400],
+                          color: AppColors.textGrey,
                           fontSize: 11,
                         ),
                       ),
-
                       const SizedBox(height: 8),
-
-                      // LINHA DE DADOS (Preço, Nota, Distância)
                       Row(
                         children: [
-                          // Preço
                           Container(
                             padding: const EdgeInsets.symmetric(
                               horizontal: 6,
                               vertical: 2,
                             ),
                             decoration: BoxDecoration(
-                              color: Colors.deepPurple.withOpacity(0.2),
+                              color: AppColors.primary.withOpacity(0.2),
                               borderRadius: BorderRadius.circular(6),
                             ),
                             child: Text(
                               "R\$${gym.dayPassPrice.toInt()}",
                               style: const TextStyle(
-                                color: Colors.deepPurpleAccent,
+                                color: AppColors.primary,
                                 fontSize: 11,
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
                           ),
-
                           const SizedBox(width: 8),
-
-                          // Nota
-                          const Icon(Icons.star, color: Colors.amber, size: 14),
+                          const Icon(
+                            Icons.star,
+                            color: AppColors.star,
+                            size: 14,
+                          ),
                           Text(
                             " ${gym.rating}",
                             style: const TextStyle(
-                              color: Colors.white,
+                              color: AppColors.textWhite,
                               fontSize: 12,
                             ),
                           ),
-
                           const Spacer(),
-
-                          // === CORREÇÃO DA DISTÂNCIA AQUI ===
                           Container(
                             padding: const EdgeInsets.symmetric(
                               horizontal: 6,
@@ -178,12 +180,12 @@ class GymCard extends StatelessWidget {
                                   Icons.near_me,
                                   color: Colors.yellowAccent,
                                   size: 10,
-                                ), // Ícone amarelo para destaque
+                                ),
                                 const SizedBox(width: 4),
                                 Text(
-                                  gym.distance, // Ex: "1.2 km"
+                                  gym.distance,
                                   style: GoogleFonts.robotoMono(
-                                    color: Colors.white,
+                                    color: AppColors.textWhite,
                                     fontSize: 11,
                                     fontWeight: FontWeight.bold,
                                   ),
