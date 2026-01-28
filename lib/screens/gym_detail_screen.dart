@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../models/gym.dart';
 
 class GymDetailScreen extends StatelessWidget {
@@ -6,43 +8,187 @@ class GymDetailScreen extends StatelessWidget {
 
   const GymDetailScreen({super.key, required this.gym});
 
+  // Abre o Google Maps Completo (onde tem telefone e chat)
+  Future<void> _openGoogleMaps() async {
+    final googleMapsUrl = Uri.parse(
+      "https://www.google.com/maps/search/?api=1&query=${gym.latitude},${gym.longitude}&query_place_id=${gym.id}",
+    );
+    await launchUrl(googleMapsUrl, mode: LaunchMode.externalApplication);
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFF0F0F0F),
       body: CustomScrollView(
         slivers: [
+          // TOPO COM FOTO GIGANTE
           SliverAppBar(
-            expandedHeight: 250,
+            expandedHeight: 300,
             pinned: true,
+            backgroundColor: const Color(0xFF0F0F0F),
             flexibleSpace: FlexibleSpaceBar(
-              title: Text(gym.name, style: const TextStyle(color: Colors.white, fontSize: 16)),
               background: Image.network(
-                gym.imageUrl, // Usa Internet
+                gym.imageUrl,
                 fit: BoxFit.cover,
-                errorBuilder: (ctx, error, stack) => Container(color: Colors.grey[900]),
+                errorBuilder: (ctx, _, __) =>
+                    Container(color: Colors.grey[900]),
               ),
             ),
+            leading: IconButton(
+              icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white),
+              onPressed: () => Navigator.pop(context),
+              style: IconButton.styleFrom(backgroundColor: Colors.black54),
+            ),
           ),
+
+          // CONTEÚDO
           SliverToBoxAdapter(
             child: Padding(
-              padding: const EdgeInsets.all(16.0),
+              padding: const EdgeInsets.all(20),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text("R\$ ${gym.dayPassPrice.toInt()}", style: const TextStyle(fontSize: 28, color: Colors.deepPurpleAccent, fontWeight: FontWeight.bold)),
+                  // Status e Nota
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: gym.isOpen
+                              ? Colors.green.withOpacity(0.2)
+                              : Colors.red.withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(
+                            color: gym.isOpen ? Colors.green : Colors.red,
+                          ),
+                        ),
+                        child: Text(
+                          gym.isOpen ? "ABERTO AGORA" : "FECHADO",
+                          style: TextStyle(
+                            color: gym.isOpen ? Colors.green : Colors.red,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                      Row(
+                        children: [
+                          const Icon(Icons.star, color: Colors.amber, size: 20),
+                          Text(
+                            " ${gym.rating}",
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+
                   const SizedBox(height: 16),
-                  const Text("Endereço", style: TextStyle(fontWeight: FontWeight.bold)),
-                  Text(gym.address, style: const TextStyle(color: Colors.white70)),
+
+                  // Título
+                  Text(
+                    gym.name,
+                    style: GoogleFonts.montserrat(
+                      color: Colors.white,
+                      fontSize: 28,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+
+                  const SizedBox(height: 8),
+
+                  // Endereço
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Icon(
+                        Icons.location_on,
+                        color: Colors.grey,
+                        size: 20,
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          gym.address,
+                          style: const TextStyle(
+                            color: Colors.grey,
+                            fontSize: 14,
+                            height: 1.4,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+
                   const SizedBox(height: 30),
+
+                  // Horário (Texto Simples pois a API básica não dá detalhes)
+                  const Text(
+                    "Horário de Funcionamento",
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF1E1E1E),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      gym.isOpen
+                          ? "O estabelecimento está funcionando neste momento.\nConsulte o mapa para horários exatos."
+                          : "O estabelecimento está fechado.\nConsulte o mapa para saber quando abre.",
+                      style: const TextStyle(color: Colors.white70),
+                    ),
+                  ),
+
+                  const SizedBox(height: 30),
+
+                  // BOTÃO DE AÇÃO (Resolver o contato)
                   SizedBox(
                     width: double.infinity,
-                    height: 50,
-                    child: ElevatedButton(
-                      onPressed: () {},
-                      style: ElevatedButton.styleFrom(backgroundColor: Colors.deepPurpleAccent),
-                      child: const Text("Check-in", style: TextStyle(color: Colors.white)),
+                    height: 55,
+                    child: ElevatedButton.icon(
+                      onPressed: _openGoogleMaps,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.deepPurpleAccent,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                      ),
+                      icon: const Icon(Icons.map, color: Colors.white),
+                      label: const Text(
+                        "VER HORÁRIOS / TELEFONE",
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
+                      ),
                     ),
-                  )
+                  ),
+
+                  const SizedBox(height: 10),
+                  const Center(
+                    child: Text(
+                      "Toque acima para ligar ou ver site",
+                      style: TextStyle(color: Colors.grey, fontSize: 12),
+                    ),
+                  ),
+                  const SizedBox(height: 50),
                 ],
               ),
             ),
