@@ -78,19 +78,20 @@ class _MapScreenState extends State<MapScreen> {
           final gymLat = place['geometry']['location']['lat'];
           final gymLng = place['geometry']['location']['lng'];
           final rating = place['rating']?.toDouble() ?? 4.5;
+          // Verifica se está aberto
           final isOpen = place['opening_hours']?['open_now'] ?? true;
           
-          // CORREÇÃO CRÍTICA: Pegando o endereço certo do JSON do Google
           final String realAddress = place['vicinity'] ?? "Endereço indisponível";
 
           final tempGym = Gym(
             id: place['place_id'],
             name: gymName,
-            address: realAddress, // Agora passa a variável correta (String), não null
+            address: realAddress,
             imageUrl: "https://images.unsplash.com/photo-1571902943202-507ec2618e8f?q=80&w=1375&auto=format&fit=crop",
             dayPassPrice: 25.0,
             rating: rating,
             hasAirConditioning: true,
+            isOpen: isOpen, // <--- ADICIONADO: Passa se está aberto ou fechado
             latitude: gymLat,
             longitude: gymLng,
             distance: "Perto de você",
@@ -141,7 +142,7 @@ class _MapScreenState extends State<MapScreen> {
         title: const Text("Academias Reais"),
         backgroundColor: Colors.transparent,
         elevation: 0,
-        automaticallyImplyLeading: false, // REMOVE A SETA DE VOLTAR (IMPORTANTE)
+        automaticallyImplyLeading: false, 
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator(color: Colors.deepPurpleAccent))

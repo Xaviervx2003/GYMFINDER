@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:url_launcher/url_launcher.dart'; // Importante para abrir o mapa
+import 'package:url_launcher/url_launcher.dart'; 
 import '../models/gym.dart';
 
 class GymCard extends StatelessWidget {
@@ -7,7 +7,6 @@ class GymCard extends StatelessWidget {
 
   const GymCard({super.key, required this.gym});
 
-  // Função para abrir o GPS do celular
   Future<void> _openMap() async {
     final googleMapsUrl = Uri.parse("google.navigation:q=${gym.latitude},${gym.longitude}&mode=d");
     try {
@@ -39,7 +38,7 @@ class GymCard extends StatelessWidget {
             padding: const EdgeInsets.all(12),
             child: Row(
               children: [
-                // === A IMAGEM QUE CARREGA DA INTERNET ===
+                // IMAGEM
                 ClipRRect(
                   borderRadius: BorderRadius.circular(12),
                   child: Image.network(
@@ -58,37 +57,69 @@ class GymCard extends StatelessWidget {
                 
                 const SizedBox(width: 16),
                 
-                // Informações
+                // INFORMAÇÕES
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      // Nome
                       Text(gym.name, 
                         maxLines: 1, 
                         overflow: TextOverflow.ellipsis, 
                         style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white)
                       ),
+                      
                       const SizedBox(height: 4),
+                      
+                      // Endereço
                       Text(gym.address, 
                         maxLines: 1, 
                         overflow: TextOverflow.ellipsis, 
                         style: TextStyle(color: Colors.grey[400], fontSize: 12)
                       ),
+                      
                       const SizedBox(height: 8),
+
+                      // === LINHA DE DETALHES (PREÇO + NOTA + DISTÂNCIA) ===
                       Row(
                         children: [
+                          // Preço
                           Text("R\$${gym.dayPassPrice.toInt()}", 
                               style: const TextStyle(color: Colors.deepPurpleAccent, fontWeight: FontWeight.bold)),
-                          const SizedBox(width: 8),
-                          const Icon(Icons.star, color: Colors.amber, size: 16),
-                          Text(" ${gym.rating}", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                          
+                          const SizedBox(width: 10),
+                          
+                          // Nota
+                          const Icon(Icons.star, color: Colors.amber, size: 14),
+                          Text(" ${gym.rating}", style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
+
+                          const SizedBox(width: 10),
+
+                          // === AQUI ESTÁ A DISTÂNCIA QUE FALTAVA! ===
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: Colors.white10,
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Row(
+                              children: [
+                                const Icon(Icons.location_on, color: Colors.greenAccent, size: 10),
+                                const SizedBox(width: 2),
+                                Text(
+                                  gym.distance, // Ex: "800 m" ou "1.2 km"
+                                  style: const TextStyle(color: Colors.white70, fontSize: 10),
+                                ),
+                              ],
+                            ),
+                          ),
                         ],
                       ),
                     ],
                   ),
                 ),
                 
-                // === O BOTÃO DE ROTA ===
+                // BOTÃO DE ROTA
                 IconButton.filled(
                   onPressed: _openMap,
                   style: IconButton.styleFrom(backgroundColor: Colors.deepPurpleAccent),
